@@ -8,6 +8,8 @@ To use
 
 Install via pip
 
+.. code-block:: bash
+
     pip install django-meetup
 
 Add to your Django settings module the following variables
@@ -38,6 +40,8 @@ To sync group events
 --------------------
 
 To sync up a group, from the command line run
+    
+.. code-block:: bash    
     
     py manage.py sync_group_events <group_id>
 
