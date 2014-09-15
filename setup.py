@@ -2,7 +2,7 @@ from distutils.core import setup
 import meetup
 
 install_requires = open("requirements.txt").read().split("\n")
-readme = open('README.rst').read()+open("LICENSE").read()
+readme = open('README.rst').read()+"\nLicense\n-------\n"+open("LICENSE").read()
 
 setup(
     name="django-meetup",
