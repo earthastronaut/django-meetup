@@ -1,8 +1,10 @@
-# Django-Meetup
+Django-Meetup
+=============
 
 This is a general purpose django-app for syncing with Meetup.com and adding adding Meetup.com content to your website.
 
-## To use
+To use
+------
 
 Install via pip
 
@@ -28,13 +30,15 @@ Add to your Django settings module the following variables
 (optional) This is the default group id to get information from
 
 
-## To sync group events 
+To sync group events 
+--------------------
 
 To sync up a group, from the command line run
     
     py manage.py sync_group_events <group_id>
 
-## How it works
+How it works
+------------
 
 [Meetup.com](https://www.meetup.com) provides an api which a Meetup.com member can access via [api.meetup.com](https://api.meetup.com).
 
@@ -44,9 +48,10 @@ Models made to mimic hypothesized meetup.com database tables can take the client
 
 The developer can then use the models to post information onto their webpage.
 
-## To contribute
+To contribute
+-------------
 
 If you have methods or modifications which refine this package please contribute via [github astrodsg/django-meetup](https://github.com/astrodsg/django-meetup.git)
 
-## License
-
+License
+-------
