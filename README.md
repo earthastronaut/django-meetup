@@ -46,7 +46,7 @@ The developer can then use the models to post information onto their webpage.
 
 ## To contribute
 
-If you have methods or modifications which refine this package please contribute via [github astrodsg/django-meetup]()
+If you have methods or modifications which refine this package please contribute via [github astrodsg/django-meetup](https://github.com/astrodsg/django-meetup.git)
 
 ## License
 
