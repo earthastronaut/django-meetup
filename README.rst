@@ -61,5 +61,3 @@ To contribute
 
 If you have methods or modifications which refine this package please contribute via `github astrodsg/django-meetup <https://github.com/astrodsg/django-meetup.git>`_.
 
-License
--------
