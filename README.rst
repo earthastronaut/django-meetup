@@ -48,7 +48,7 @@ To sync up a group, from the command line run
 How it works
 ------------
 
-`Meetup.com](https://www.meetup.com) provides an api which a Meetup.com member can access via [api.meetup.com <https://api.meetup.com>`_..
+`Meetup.com <https://www.meetup.com>`_. provides an api which a Meetup.com member can access via `api.meetup.com <https://api.meetup.com>`_..
 
 This package implements a MeetupClient which uses a meetup member's `meetup api key <https://secure.meetup.com/meetup_api/key/>`_.. The client can query the meetup api and get back dictionaries of "meetup data". Note that member permissions on Meetup.com apply to the members api queries.
 
