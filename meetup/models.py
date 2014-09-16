@@ -89,6 +89,9 @@ class MeetupManager (models.Manager):
       
     def _post_meetup_data_to_kws (self,meetup_data,kws):
         return kws
+     
+    def _post_object_creation_or_update (self,obj,md):
+        return obj
                 
     def to_meetup_data (self,**filter):        
         """ Takes filters and converts each to meetup data """                
@@ -128,6 +131,7 @@ class MeetupManager (models.Manager):
                     obj.save()
                 except self.model.DoesNotExist:
                     obj = self.create(**kws)
+                obj = self._post_object_creation_or_update(obj,md)
             else:
                 # pass the key/value data through
                 obj = kws
@@ -144,7 +148,7 @@ class VenueManager (MeetupManager):
     def _post_meetup_data_to_kws (self,obj,kws):
         # convert longitude and latitude
         for key in ('lon','lat'):
-            loc = to_prep_geo(kws.pop(key))
+            loc = fro_meetup_geo(kws.pop(key))
             if loc is not None:
                 kws[key] = loc
         return kws
@@ -152,7 +156,7 @@ class VenueManager (MeetupManager):
     def _post_object_to_meetup_data (self,meetup_data,kws):
         # convert longitude and latitude
         for key in ('lon','lat'):
-            loc = fro_prep_geo(kws.pop(key))
+            loc = to_meetup_geo(kws.pop(key))
             if loc is not None:
                 kws[key] = loc
         return kws        
@@ -202,9 +206,16 @@ class GroupManager (MeetupManager):
             loc = fro_meetup_geo(kws.pop(key,None))
             if loc is not None:
                 kws[key] = loc      
+        # if there are members then convert that number to an int
         key = str('n_members')
         if key in kws:
-            kws[key] = int(kws[key] or 0)        
+            kws[key] = int(kws[key] or 0)             
+        
+        # if timezone then check and convert to timezone string
+        key = 'timezone'
+        if key in kws:
+            kws[key] = str(pytz.timezone(meetup_data[key])) 
+                              
         return kws
     
     def _post_object_to_meetup_data (self,obj,kws):
@@ -245,14 +256,15 @@ class Group (models.Model):
         
 class EventManager(MeetupManager):
         
-    meetup_mapper = Mapper("event_model -> meetup_data")
-    meetup_mapper['timestamp'] = 'time'
+    meetup_mapper = Mapper("event_model_field -> meetup_data_key")
+    meetup_mapper['event_timestamp'] = 'time'
         
     def _post_meetup_data_to_kws (self,meetup_data,kws):
         group_data = meetup_data['group']
         kws['group'] = Group.objects.from_meetup_data(group_data,sync=True)
-        tzinfo = kws['group'].timezone               
-        kws['timestamp'] = fro_meetup_timestamp(kws['timestamp'],tzinfo)
+        tzinfo = kws['group'].timezone                       
+        key = self.meetup_mapper.fro('time')
+        kws[key] = fro_meetup_timestamp(kws[key],tzinfo)
         return kws
     
     def _post_object_to_meetup_data (self,obj,kws):
@@ -260,7 +272,12 @@ class EventManager(MeetupManager):
         kws['group_id'] = obj.group.id        
         raise NotImplementedError("not sure if what data meetup wants back to change this")
         return kws        
-            
+
+    def _post_object_creation_or_update (self,obj,md):
+        venue = Venue.objects.from_meetup_data(md['venue'],sync=True)
+        obj.venue.add(venue)
+        return obj
+     
     def past(self):
         return Event.objects.filter(status='past')
 
@@ -288,8 +305,9 @@ class Event(models.Model):
     waitlist_count = models.IntegerField(default=0,blank=True)
     maybe_rsvp_count = models.IntegerField(default=0,blank=True)    
     
-    timestamp = models.DateTimeField()    
-
+    event_timestamp = models.DateTimeField()    
+    # created_timestamp
+    
     venue = models.ManyToManyField(Venue)
     group = models.ForeignKey(Group)
 
@@ -302,7 +320,84 @@ class Event(models.Model):
             desc = desc[:-3] + "..."
         return desc    
 
+    def set_view_tz (self,tz):
+        if isinstance(tz,basestring):
+            self._view_tz = pytz.timezone(tz)
+        else:
+            self._view_tz = tz 
+    
+    def get_view_tz (self):
+        return getattr(self,'_view_tz',None)
+      
+    def _event_timestamp_in_view_tz (self,tz=None):
+        dt = self.event_timestamp
+        view_tz = self.get_view_tz()
+        if tz is not None:  
+            dt = dt.astimezone(tz)
+        elif view_tz is not None:
+            dt = dt.astimezone(view_tz)
+        return dt        
+    
+    def view_when (self,tz=None):
+        yr = self.view_year(tz)
+        mo = self.view_month(tz)
+        day = self.view_day(tz)
+        t = self.view_time_of_day(tz)        
+        when = mo
+        if str(datetime.datetime.today().year) != yr:
+            when += " "+yr
+        when += " {} at {}".format(day,t)
+        return when    
+    
+    def view_month (self,tz=None):
+        """ Event timestamp month string """
+        mo = {1:"January",
+                  2:"Febuary",
+                  3:"March",
+                  4:"April",
+                  5:"May",
+                  6:"June",
+                  7:"July",
+                  8:"August",
+                  9:"September",
+                  10:"October",
+                  11:"November",
+                  12:"December"}                                            
+        dt = self._event_timestamp_in_view_tz(tz)
+        return mo[dt.month]
+        
+    def view_day (self,tz=None):
+        """ Event timestamp day of month """ 
+        return str(self._event_timestamp_in_view_tz(tz).day)
 
+    def view_year (self,tz=None):
+        """ Event timestamp day of month """ 
+        return str(self._event_timestamp_in_view_tz(tz).year)
+
+    def view_weekday (self,tz=None):
+        """ Event timestamp day of week string """    
+        wk = {0:"Monday",
+                  1:"Tuesday",
+                  2:"Wednesday",
+                  3:"Thursday",
+                  4:"Friday",
+                  5:"Saturday",
+                  6:"Sunday"}
+        dt = self._event_timestamp_in_view_tz(tz)                 
+        return wk[dt.weekday()]
+
+    def view_time_of_day (self,hour24=False,tz=None):
+        dt = self._event_timestamp_in_view_tz(tz)
+        h = dt.hour
+        m = dt.minute        
+        when = "{}:{:02}"
+        if not hour24:
+            if h < 12:                
+                when += " AM"
+            else:
+                h -= 12
+                when += " PM"        
+        return when.format(h,m)
         
     
     

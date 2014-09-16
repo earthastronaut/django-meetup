@@ -14,7 +14,7 @@ class GroupAdmin(admin.ModelAdmin):
     list_display = ('id','name','link','n_members')
 
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('id','name','status','group','short_description')
+    list_display = ('id','view_when','name','status','group','short_description')
     list_filter = ('status','group')
 
 if getattr(settings,'MEETUP_ALLOW_ADMIN',False):
