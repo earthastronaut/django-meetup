@@ -1,5 +1,16 @@
-from distutils.core import setup
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+PURPOSE: Install django-meetup 
+AUTHOR: dylangregersen
+DATE: Tue Sep 16 09:01:37 2014
+"""
+import os
 import meetup
+try:
+    from setuptools import setup, find_packages
+except ImportError:
+    from distutils.core import setup, find_packages
 
 install_requires = open("requirements.txt").read().split("\n")
 readme = open('README.rst').read()+"\nLicense\n-------\n"+open("LICENSE").read()
@@ -7,7 +18,8 @@ readme = open('README.rst').read()+"\nLicense\n-------\n"+open("LICENSE").read()
 setup(
     name="django-meetup",
     version=meetup.__version__,
-    packages=['meetup'],    
+    packages=find_packages(),  
+    include_package_data=True,  
     url="https://github.com/astrodsg/django-meetup",
     description="General purpose Django Meetup database to sync with Meetup.com.",
     long_description=readme,
