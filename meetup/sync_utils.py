@@ -27,12 +27,26 @@ def to_meetup_geo (geo):
     """ from geo location to Meetup data geo """
     return geo
     
-def fro_meetup_timestamp (t,tzinfo):
+def fro_meetup_timestamp (t,tzinfo=""):
+    """ Take time stamp from Meetup, convert to datetime 
+    assumes utc if not tzinfo is given
+
+    t : integer
+        time in milliseconds
+        
+    """
+    # convert to structured time
     struct_time = time.gmtime(int(t) / 1000.0)    
+    # get datetime object
     keys = ['year','month','day','hour','minute','second']
     kws = {k:struct_time[i] for i,k in enumerate(keys)}
-    kws['tzinfo'] = pytz.timezone(tzinfo)   
-    return datetime.datetime(**kws)
+    kws['tzinfo'] = pytz.utc
+    dt = datetime.datetime(**kws)
+    # apply timezone info if needed
+    if len(tzinfo):
+        return dt.astimezone(pytz.timezone(tzinfo))
+    else:
+        return dt
 
 def to_meetup_timestamp (ts):
     tzinfo = str(ts.tzinfo)
