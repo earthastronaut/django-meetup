@@ -11,14 +11,18 @@ DATE: Mon Sep 15 00:12:21 2014
 
 from __future__ import print_function, division
 from django.db import models
+from django.conf import settings
 import datetime
 import pytz
 import warnings
 from meetup.sync_utils import (fro_meetup_geo,to_meetup_geo,
                               fro_meetup_timestamp,to_meetup_timestamp)
 
-STATUS_CHOICES = ('past','pending','upcoming')
-VISIBILITY_CHOICES = ('public','private')
+DEFAULT_VIEW_TIMEZONE = pytz.timezone(getattr(settings,"TIME_ZONE","UTC"))
+
+STATUS_OPTIONS = ("upcoming", "past", "proposed", "suggested", "cancelled", "draft")
+VISIBILITY_OPTIONS = ("public", "public_limited","members")
+JOIN_OPTIONS = ("open", "closed", "approval" )
 
 # ########################################################################### #
 
@@ -60,16 +64,16 @@ class Mapper (object):
 
 class MeetupManager (models.Manager):  
           
-    def _object_to_meetup_data (self,obj):
+    def _object_to_meetup_params (self,obj):
         mapper = self.meetup_mapper
         kws = {}
         field_names = [f.name for f in self.model._meta.fields]
         for field in field_names:            
             meetup_key = mapper.get_to(field,field)                
             kws[meetup_key] = getattr(obj,field)
-        return self._post_object_to_meetup_data(obj,kws)
+        return self._post_object_to_meetup_params(obj,kws)
             
-    def _post_object_to_meetup_data (self,obj,kws):
+    def _post_object_to_meetup_params (self,obj,kws):
         return kws
         
     def _meetup_data_to_kws (self,meetup_data):
@@ -93,10 +97,12 @@ class MeetupManager (models.Manager):
     def _post_object_creation_or_update (self,obj,md):
         return obj
                 
-    def to_meetup_data (self,**filter):        
-        """ Takes filters and converts each to meetup data """                
+    def to_meetup_params (self,**filter):        
+        """ Takes filters and converts each to meetup parameters 
+        which a client who has permissions can POST via api.meetup.com        
+        """                
         objs = self.filter(**filter)
-        return [self._object_to_meetup_data(obj) for obj in objs]
+        return [self._object_to_meetup_params(obj) for obj in objs]
       
     def from_meetup_data (self,meetup_data,sync=True):
         """ Takes Meetup data to model data
@@ -153,7 +159,7 @@ class VenueManager (MeetupManager):
                 kws[key] = loc
         return kws
     
-    def _post_object_to_meetup_data (self,meetup_data,kws):
+    def _post_object_to_meetup_params (self,meetup_data,kws):
         # convert longitude and latitude
         for key in ('lon','lat'):
             loc = to_meetup_geo(kws.pop(key))
@@ -180,6 +186,17 @@ class Venue (models.Model):
           
     def __unicode__ (self):
         return self.name 
+
+    def view_location (self):
+        return " ".join((self.address_1,self.city,self.state))
+        
+    def google_url (self):
+        keywords = (self.name,self.city,self.state,self.country,self.address_1)
+        search = "+".join(keywords).replace("/","_").replace(" ","+")
+        # url = "https://www.google.com/search?q="+search
+        url = "https://www.google.com/maps/place/"+search
+        return url
+
 
 class Member (models.Model):
     """ Meetup member account """
@@ -218,7 +235,7 @@ class GroupManager (MeetupManager):
                               
         return kws
     
-    def _post_object_to_meetup_data (self,obj,kws):
+    def _post_object_to_meetup_params (self,obj,kws):
         # convert longitude and latitude
         for key in ('lon','lat'):
             loc = to_meetup_geo(kws.pop(key))
@@ -231,7 +248,7 @@ class Group (models.Model):
     """ Meetup Group Model """
     objects = GroupManager()
     
-    VISIBLITY_CHOICES = VISIBILITY_CHOICES
+    VISIBLITY_CHOICES = VISIBILITY_OPTIONS
     
     name = models.CharField(max_length=128)
     urlname = models.CharField(max_length=128)
@@ -267,7 +284,7 @@ class EventManager(MeetupManager):
         kws[key] = fro_meetup_timestamp(kws[key],tzinfo)
         return kws
     
-    def _post_object_to_meetup_data (self,obj,kws):
+    def _post_object_to_meetup_params (self,obj,kws):
         kws['time'],_ = to_meetup_timestamp(kws['time'])
         kws['group_id'] = obj.group.id        
         raise NotImplementedError("not sure if what data meetup wants back to change this")
@@ -289,28 +306,32 @@ class EventManager(MeetupManager):
       
 class Event(models.Model): 
     """ Meetup Event Model """
-    STATUS_CHOICES = STATUS_CHOICES
-    VISIBILITY_CHOICES = VISIBILITY_CHOICES
+    STATUS_OPTIONS = STATUS_OPTIONS
+    VISIBILITY_OPTIONS = VISIBILITY_OPTIONS
     objects = EventManager()
     
     # Meetup.com fields
     event_url = models.URLField(max_length=255, blank=True)        
     name = models.CharField(max_length=255, blank=True)    
-    status = models.CharField(max_length=16, choices=[(s,s) for s in STATUS_CHOICES])
-    visibility = models.CharField(max_length=16, choices=[(s,s) for s in VISIBILITY_CHOICES])
-    description = models.TextField(blank=True)
-    
+    status = models.CharField(max_length=16, choices=[(s,s) for s in STATUS_OPTIONS])
+    visibility = models.CharField(max_length=16, choices=[(s,s) for s in VISIBILITY_OPTIONS])
+    description = models.TextField(blank=True)    
     headcount = models.IntegerField(default=0,blank=True)
     yes_rsvp_count = models.IntegerField(default=0,blank=True)
     waitlist_count = models.IntegerField(default=0,blank=True)
     maybe_rsvp_count = models.IntegerField(default=0,blank=True)    
     
-    event_timestamp = models.DateTimeField()    
-    # created_timestamp
+    event_timestamp = models.DateTimeField()  
+    # fee_amount = float
+    #  
+    
     
     venue = models.ManyToManyField(Venue)
     group = models.ForeignKey(Group)
 
+    # timezone to view event times in
+    _view_tz = DEFAULT_VIEW_TIMEZONE 
+    
     def __unicode__ (self):
         return self.name    
     
@@ -338,12 +359,16 @@ class Event(models.Model):
             dt = dt.astimezone(view_tz)
         return dt        
     
+    def view_status (self):
+        return str(self.status)
+    
     def view_when (self,tz=None):
         yr = self.view_year(tz)
         mo = self.view_month(tz)
+        wd = self.view_weekday()
         day = self.view_day(tz)
         t = self.view_time_of_day(tz)        
-        when = mo
+        when = "{} {}".format(wd,mo)
         if str(datetime.datetime.today().year) != yr:
             when += " "+yr
         when += " {} at {}".format(day,t)
@@ -398,6 +423,13 @@ class Event(models.Model):
                 h -= 12
                 when += " PM"        
         return when.format(h,m)
-        
-    
+
+
+
+
+# class SurveyQuestionManager (MeetupManager)        
+# class SurveyQuestion (models.Model):
+# 
+#     event = ForeignKey
+
     
