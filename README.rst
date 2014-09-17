@@ -1,7 +1,9 @@
 Django-Meetup
 =============
 
-This is a general purpose django-app for syncing with Meetup.com and adding adding Meetup.com content to your website.
+This is a general purpose django-app for syncing Meetup.com to a local database and adding Meetup.com content to a website.
+
+This was specifically designed to put events for one Meetup.com group onto their independent website. However, it was designed to give flexibility to the developer for whatever Meetup.com content syncing and posting they wish. 
 
 To use
 ------
@@ -15,7 +17,7 @@ Install via pip
 Add to your Django settings module the following variables
 
 .. code-block:: python 
-
+    
     THIRD_PARTY_APPS = [ 
         ...,
         "meetup",
@@ -24,17 +26,25 @@ Add to your Django settings module the following variables
     
     MEETUP_KEY = ""
     
-    # **Security Warning:** Keep personal Meetup api key secret, read `Meetup documentation <https://secure.meetup.com/meetup_api/key/>`_.
+    # **Security Warning:** Keep personal Meetup api key secret.
+    # Read `Meetup documentation <https://secure.meetup.com/meetup_api/key/>`_.
     
+    MEETUP_GROUP_ID = 123456789
+    
+    # (optional) This is the default group id to get information fro      
+        
     MEETUP_ALLOW_ADMIN = True
 
     # (optional) This boolean will set up admin interface. 
-    # **WARNING:** Methods to sync TO Meetup have not been completed. So any changes to the database are local.
+    # **WARNING:** Methods to sync TO Meetup have not been completed. 
+    #    So any changes to the database are local.
+ 
+    TIME_ZONE = "UTC"
     
-    MEETUP_GROUP_ID = 123456789
-
-    # (optional) This is the default group id to get information from
-
+    # (optional) This key is standard Django. The meetup package stores times 
+    # in "UTC" but methods to view the time will set to TIME_ZONE as the default
+    # for that view 
+    
 
 To sync group events 
 --------------------
