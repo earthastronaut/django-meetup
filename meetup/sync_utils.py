@@ -33,7 +33,9 @@ def fro_meetup_timestamp (t,tzinfo=""):
 
     t : integer
         time in milliseconds
-        
+    tzinfo : string or pytz.timezone object
+    
+    
     """
     # convert to structured time
     struct_time = time.gmtime(int(t) / 1000.0)    
@@ -43,12 +45,18 @@ def fro_meetup_timestamp (t,tzinfo=""):
     kws['tzinfo'] = pytz.utc
     dt = datetime.datetime(**kws)
     # apply timezone info if needed
-    if len(tzinfo):
+    if isinstance(tzinfo,datetime.tzinfo):
+        return dt.astimezone(tzinfo)
+    elif len(tzinfo):
         return dt.astimezone(pytz.timezone(tzinfo))
     else:
         return dt
 
 def to_meetup_timestamp (ts):
+    """ Convert to meetup's time stamp 
+    
+    
+    """
     tzinfo = str(ts.tzinfo)
     t = time.mktime(d.timetuple())
     return t,tzinfo

@@ -24,7 +24,25 @@ class MeetupClient(object):
     """ MeetupClient """
     def __init__(self, api_key):
         """ Find your api_key from https://secure.meetup.com/meetup_api/key/"""
-        self.api_key = api_key
+        self.api_key = api_key    
+        self._cached_request_urls = {}
+        
+    def signed_request_url (self,meetup_method,params=None,request_hash=None):
+        """ To GET data from api.meetup.com 
+        
+        """        
+        if request_hash is not None and request_hash in self._cached_request_urls:
+            return self._cached_request_urls[request_hash]
+        
+        # get the parameters 
+        params = params.copy() if params is not None else {}
+        params['signed'] = True
+
+        response = self.invoke(meetup_method,params,method='GET')
+        signed_url = response['signed_url']
+        if request_hash is not None:
+            self._cached_request_urls[request_hash] = signed_url
+        return signed_url
     
     def invoke (self, meetup_method, params=None, method='GET'):
         """ For invoking a request
@@ -41,6 +59,8 @@ class MeetupClient(object):
         response : dict
         
         """
+        # TODO: rename invoke to http_response        
+        
         # get the parameters 
         params = params.copy() if params is not None else {}
         params['key'] = self.api_key
@@ -50,7 +70,7 @@ class MeetupClient(object):
         # see http://www.meetup.com/meetup_api/docs/
         if meetup_method.startswith("/"):
             meetup_method = meetup_method[1:]        
-        url =  os.path.join("http://api.meetup.com",meetup_method)
+        url =  os.path.join("https://api.meetup.com",meetup_method)
         
         # get response
         if method == 'GET':
