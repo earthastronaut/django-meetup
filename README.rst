@@ -71,3 +71,15 @@ To contribute
 
 If you have methods or modifications which refine this package please contribute via `github astrodsg/django-meetup <https://github.com/astrodsg/django-meetup.git>`_.
 
+Other resources
+---------------
+
+Other resources to consider for requesting/posting data from Meetup.com
+
+* [python-api-client](https://github.com/meetup/python-api-client)
+
+* [signed requests using javascript](http://www.meetup.com/meetup_api/auth/#keysign)
+
+
+Note: In the project I developed this for I decided to go with a smaller app which doesn't store local information is more like the [python-api-client](https://github.com/meetup/python-api-client). The project is located at [github.com/SLCPython/slcpy.com](https://github.com/SLCPython/slcpy.com) if you want to see the actual implementation. Cheers!
+
