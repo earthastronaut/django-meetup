@@ -76,10 +76,10 @@ Other resources
 
 Other resources to consider for requesting/posting data from Meetup.com
 
-* [python-api-client](https://github.com/meetup/python-api-client)
+* `python-api-client <https://github.com/meetup/python-api-client>`_..
 
-* [signed requests using javascript](http://www.meetup.com/meetup_api/auth/#keysign)
+* `signed requests using javascript <http://www.meetup.com/meetup_api/auth/#keysign>`_..
 
 
-Note: In the project I developed this for I decided to go with a smaller app which doesn't store local information is more like the [python-api-client](https://github.com/meetup/python-api-client). The project is located at [github.com/SLCPython/slcpy.com](https://github.com/SLCPython/slcpy.com) if you want to see the actual implementation. Cheers!
+Note: In the project I developed this for I decided to go with a smaller app which doesn't store local information is more like the `python-api-client <https://github.com/meetup/python-api-client>`_.. . The project is located at `github.com/SLCPython/slcpy.com <https://github.com/SLCPython/slcpy.com>`_.. if you want to see the actual implementation. Cheers!
 
